@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bing Maps Marker Example</title>
+    <script type='text/javascript' src='https://www.bing.com/api/maps/mapcontrol?key=AtBXbkcJWpLVDWgfKQwfu0_1_KU2FAfNeUjxCjtxCAYzxmSzYC5Y43d1q1tqTG3m'></script>
+    <script type='text/javascript'>
+        function loadMap() {
+            var map = new Microsoft.Maps.Map('#map', {
+                center: new Microsoft.Maps.Location(-15.8422000, -70.0199000),
+                zoom: 30
+            });
+
+            var marker = new Microsoft.Maps.Pushpin(map.getCenter(), {
+                title: 'My Marker'
+            });
+
+            map.entities.push(marker);
+        }
+    </script>
+</head>
+<body onload='loadMap()'>
+    <div id='map' style='width: 100%; height: 100%;'></div>
+</body>
+</html>

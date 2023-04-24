@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mapbox Marker Example</title>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v1.11.1/mapbox-gl.css' rel='stylesheet' />
+    <script src='https://api.mapbox.com/mapbox-gl-js/v1.11.1/mapbox-gl.js'></script>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1IjoibXVzaWNhbGwiLCJhIjoiY2s4N2l2NnJ5MDNrZDNsc2Z2M2Z0MnJyNiJ9.5kK9JKpHg8oJYcZ_bJZgqw';
+        var map = new mapboxgl.Map({
+            container: 'map',
+           // style: 'mapbox://styles/mapbox/streets-v11',
+            //center: [-73.935242, 40.730610],
+            //zoom: 8
+        });
+        var marker = new mapboxgl.Marker()
+        .setLngLat([-73.935242, 40.730610])
+        .addTo(map);
+    </script>
+</head>
+<body>
+    <div id='map' style='width: 100%; height: 500px;'></div>
+</body>
+</html>

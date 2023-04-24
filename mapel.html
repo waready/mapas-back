@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mapa de OpenStreetMap</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!--[if lte IE 8]>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.ie.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.ie.js"></script>
+  <![endif]-->
+  <style>
+    #map_canvas {
+      height: 400px;
+    }
+  </style>
+</head>
+<body>
+  <div id="map_canvas"></div>
+
+  <script>
+    var osmMap; // variable para almacenar el objeto de mapa de OpenStreetMap
+
+    // Función para inicializar el mapa de OpenStreetMap
+    function initMap() {
+      osmMap = L.map('map_canvas').setView([51.505, -0.09], 13); // Crea un mapa y lo muestra en el elemento con el ID "map_canvas". Se establece la ubicación inicial y el nivel de zoom.
+
+      // Agrega una capa de mapa base de OpenStreetMap
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors' // Atribución de OpenStreetMap
+      }).addTo(osmMap);
+
+      // Llama a la función para renderizar marcadores en el mapa
+      renderMarkers();
+    }
+
+    // Función para renderizar marcadores en el mapa
+    function renderMarkers() {
+      var locations = [ // Ejemplo de arreglo de ubicaciones con latitud, longitud y título
+        {lat: 51.5074, lon: -0.1278, title: 'Londres'},
+        {lat: 40.7128, lon: -74.0060, title: 'Nueva York'},
+        {lat: 34.0522, lon: -118.2437, title: 'Los Ángeles'}
+      ];
+
+      // Itera sobre las ubicaciones y crea marcadores en el mapa
+      for (var i = 0; i < locations.length; i++) {
+        var location = locations[i];
+        var marker = L.marker([location.lat, location.lon]).addTo(osmMap); // Crea un marcador en la ubicación con latitud y longitud
+        marker.bindPopup(location.title); // Agrega un título al marcador
+      }
+    }
+
+    // Llama a la función de inicialización del mapa cuando se carga la página
+    window.onload = function() {
+      initMap();
+    };
+  </script>
+</body>
+</html>

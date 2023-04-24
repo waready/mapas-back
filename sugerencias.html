@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ejemplo de Búsqueda con Sugerencias en OpenStreetMap</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+    integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+    crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+      integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+      crossorigin=""></script>
+      <script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/es6-shim@0.35.3/es6-shim.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/es6-shim@0.35.3/es6-sham.min.js"></script>
+      
+      
+      <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+      
+    <style>
+        #mapa {
+            height: 400px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .sugerencias {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .sugerencia {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Búsqueda en OpenStreetMap</h1>
+    <input type="text" id="busqueda" placeholder="Buscar lugar...">
+    <div id="sugerencias" class="sugerencias"></div>
+    <div id="mapa"></div>
+
+    <script>
+        // URL base de la API de Nominatim
+        const BASE_URL = 'https://nominatim.openstreetmap.org/search';
+
+        // Elementos del DOM
+        const inputBusqueda = document.getElementById('busqueda');
+        const divSugerencias = document.getElementById('sugerencias');
+        const divMapa = document.getElementById('mapa');
+
+        // Mapa de OpenStreetMap
+        let map;
+
+        // Función para buscar lugares y obtener sugerencias
+        async function buscarLugares(busqueda) {
+            // Limpiar sugerencias previas
+            divSugerencias.innerHTML = '';
+
+            // Realizar consulta a la API de Nominatim
+            const response = await fetch(`${BASE_URL}?q=${busqueda}&format=json`);
+            const lugares = await response.json();
+
+            // Mostrar sugerencias en el DOM
+            lugares.forEach(lugar => {
+                const sugerencia = document.createElement('div');
+                sugerencia.textContent = lugar.display_name;
+                sugerencia.classList.add('sugerencia');
+                sugerencia.addEventListener('click', () => {
+                    // Acción al seleccionar una sugerencia (ejemplo: centrar el mapa en las coordenadas del lugar)
+                    map.setView([lugar.lat, lugar.lon], 15);
+                });
+                divSugerencias.appendChild(sugerencia);
+            });
+        }
+
+        // Inicializar mapa
+        function inicializarMapa() {
+            // Crear mapa y centrarlo en una ubicación por defecto
+            map = L.map('mapa').setView([0, 0], 2);
+
+            // Agregar capa de OpenStreetMap
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        // Evento de entrada de texto en el input de búsqueda
+        inputBusqueda.addEventListener('input', (event) => {
+            const busqueda = event.target.value.trim();
+
+            // Realizar búsqueda y obtener sugerencias
+            if (busqueda.length > 0) {
+                buscarLugares(busqueda);
+            } else {
+                divSugerencias.innerHTML = '';
+            }
+        });
+
+        // Inicializar el mapa cuando se cargue la página
+        window.addEventListener('load', () => {
+            inicializarMapa();
+        });
+    </script>
+</body>
+</html>

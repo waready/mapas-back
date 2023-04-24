@@ -1,0 +1,2472 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8">
+<title>DLYA::Bantotal</title>
+
+<link rel="stylesheet" type="text/css" href="calculadora.css" /> 
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script src="jquery/jquery-1.10.2.js"></script>
+<script src="jquery/jquery-ui.js"></script>
+
+<style type="text/css">
+table.entireMenu {
+  width: 100%;
+}
+
+/* Estilos para el manejo de paneles */
+div.panel
+{
+	visibility: hidden;
+	position: absolute;
+	overflow: hidden;
+	z-index: 10000;
+}
+
+iframe.panelBack
+{
+	z-index: 10001;
+	display: inline;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 100%;
+	height: 100%;
+}
+
+div.panelBackground
+{
+	border: 2px solid #496381;
+	z-index: 10002;
+	display: inline;
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	background-color: #FFFFFF;
+}
+
+div.panelTopBar
+{
+	position: absolute;
+	width: 100%;
+	height: 23px;
+	background-color: #496381;
+	top: 0px;
+	left: 0px;
+	z-index: 10003;
+}
+
+div.panelWaitMessage
+{
+	display: none;
+	z-index: 10006;
+	background-color: #E5E5E5;
+	position: absolute;
+}
+
+iframe.panelBody
+{
+	position: absolute;
+	top: 23px;
+	left: 2px;
+	z-index: 10005;
+	visibility: hidden;
+}
+
+div.coverAll
+{
+	position: absolute;
+	top: 0px;
+	filter: alpha(opacity=0);
+	display: none;
+	z-index: 20000;
+	background-color: #FFFFFF;
+	height: 2000px;
+	width: 100%;
+}
+
+div.panelCover
+{
+	top: 23px;
+	left: 0px;
+	position: absolute;
+	filter: alpha(opacity=0);
+	display: none;
+	z-index: 10006;
+}
+
+a.panelTitle
+{
+	position: absolute;
+	left: 24px;
+	top: 5px;
+	font-family: verdana, tahoma, arial, helvetica;
+	font-size: 8pt;
+	font-style: normal;
+	font-weight: normal;
+	color: #FFFFFF;
+	cursor: default;
+}
+
+img.panelButton
+{
+	position: absolute;
+	top: 4px;
+}
+
+img.panelRefreshButton
+{
+	position: absolute;
+	left: 4px;
+	top: 4px;
+}
+
+#map_canvas {
+	height: 400px;
+}
+</style>
+
+<script>
+	//1/4/2015:Stephanie Pacheco: Utilizado para mover la calculadora
+	$(function() {
+		$( "#dxy" ).draggable({ containment: "parent", scroll: false});
+		//document.getElementById('resultado').focus();	
+		//$('#resultado').focusout();
+	});
+</script>
+
+<script language="JavaScript">
+
+var UseStaticInitalPage = 0; //desactivado
+
+try
+{
+	UseStaticInitalPage = opener.getInitialStaticPage(); //1:activado //0:desactivado
+}
+catch (e) 
+{
+	//- No hago nada
+}
+
+// variable global "No es la pagina estatica"
+window['IsNotInitalPageStatic'] = true;
+
+// No mas hojas de trabajos
+var NoMoreWorkSpace= false;
+
+
+	
+function openAlert()
+{
+	// Si se indico' una cantidad ma'xima de espacios de trabajo se controla que no se exceda la misma
+	if ((maximumWS != 0) && (procManager.getCount() >= maximumWS))
+	{
+		alert("Se ha alcanzado la cantidad m\u00E1xima de 'Espacios de Trabajo' definidos para su usuario.");
+
+		return;
+	}
+	
+	if ((alertMark == null) || (!procManager.setMarkedFocus(alertMark)))
+		procManager.startNew(alertCall, "Alerta");
+
+	messageBody.style.visibility = 'hidden';
+	messageBack.style.visibility = 'hidden';
+	alertCloseButton.style.visibility = 'hidden';
+	processAlerts(getGetAlertUrl, getRmvAlertUrl, false);
+}
+
+function showAlert()
+{
+	actualHeight = messageBody.clientHeight;
+
+	height = 0;
+	timer = setTimeout("moveAlert()", 1);
+	bottom = 28 - actualHeight;
+	stop = 28;
+	messageBody.style.bottom = bottom;
+	messageBody.style.right = 18;
+	messageBack.style.width = messageBody.offsetWidth;
+	messageBack.style.height = height;
+	messageBack.style.bottom = 26;
+	messageBack.style.right = 18;
+	messageBody.style.visibility = 'visible';
+	messageBack.style.visibility = 'visible';
+}
+
+function moveAlert()
+{
+	bottom += 5;
+	height = actualHeight + bottom - 26;
+	if (bottom < stop)
+	{
+		messageBody.style.bottom = bottom;
+
+		if (height > 0)
+			messageBack.style.height = height;
+
+		timer = setTimeout("moveAlert()", 25);
+	}
+	else
+	{
+		messageBody.style.bottom = 28;
+		messageBack.style.height = actualHeight;
+		messageBack.style.bottom = 28;
+	}
+}
+
+var menuShorcutLinkArray = new Array(17);
+
+// 'key' es el nu'mero de la tecla de funcio'n, por ejemplo F6 se corresponde con 6
+function attachKey(key, link, title, type)
+{
+	
+	if ((key < 6) && (key > 11))
+		return;
+
+	menuShorcutLinkArray[key - 6] = [link, title, type];
+	
+}
+
+// 'key' es el co'digo de la tecla presionada
+function handleMenuShorcut(key)
+{
+	if(IsNotInitalPageStatic){
+		// Los accesos directos del menu' van entre F6 (co'digo 116) y F11 (co'digo 121)
+		if ((key < 117) && (key > 133))
+			return;
+
+		var urlInfo = menuShorcutLinkArray[key - 117];
+		
+		if (urlInfo != null)
+		{
+			// En caso que sea el programa de informacio'n, o que el espacio de trabajo actual este' vaci'o se
+			// consulta para asegurarse de no cerrar sin intencio'n el espacio de trabajo actual
+			if ((urlInfo[2] != 'I') && !procManager.currentIsEmpty())
+			{
+				if (!confirm("Si abre el nuevo programa se perder\u00E1 la informaci\u00F3n del espacio de trabajo actual."))
+					return;
+			}
+
+			getUrl(urlInfo[0], urlInfo[1], urlInfo[2]);
+		}
+	}else{
+		// Los accesos directos del menu' van entre F6 (co'digo 116) y F11 (co'digo 121)
+		if ((key < 117) && (key > 133))
+			return;
+
+		var urlInfo = menuShorcutLinkArray[key - 117];
+		
+		if (urlInfo != null)
+		{
+			// En caso que sea el programa de informacio'n, o que el espacio de trabajo actual este' vaci'o se
+			// consulta para asegurarse de no cerrar sin intencio'n el espacio de trabajo actual
+			if ((urlInfo[2] != 'I') && !procManager.currentIsEmpty())
+			{
+				if (!confirm("Si abre el nuevo programa saldra del espacio de trabajo actual."))
+					return;
+			}
+
+			openWorkSpace()
+			if(NoMoreWorkSpace){
+				return ;
+			}else{
+				getUrl(urlInfo[0], urlInfo[1], urlInfo[2]);
+			}
+		}
+	}
+}
+
+function getUrl(url, title, type)
+{
+	var pgmName;
+
+	// Se valida que no se haya abierto otra sesio'n
+	if (!checkBeforeSubmit(false))
+		return;
+
+	// Se comprueba si es una llamada
+	if (type == 'I')
+	{
+		var width = 552;
+		var height = 274;
+		var l = (screen.availWidth - width) / 2;
+		var t = (screen.availHeight - height) / 2;
+
+		pgmName = procManager.getCurrentPgm();
+
+		if (pgmName != "")
+		{
+			url = url + "," + pgmName;
+			window.open(url,"_blank","status=no,toolbar=no,location=no,directories=no,menubar=no,width=" + width + ",height=" + height + ",left=" + l + ",top=" + t + ",scrollbars=no,resizable=yes,copyhistory=no");
+		}
+	}
+	else
+	{
+		procManager.resetCurrent(url, title);
+	}
+}
+
+var isInternetExplorer = navigator.appName.indexOf("Microsoft") != -1;
+
+
+function goTo(nTab)
+{
+	window.tabManager.goTo(nTab);
+}
+
+var minPageWidth = 900;
+function makevisible(cur, which)
+{
+	strength = (which == 0) ? 1 : 0.6;
+
+	if (cur.style.MozOpacity)
+		cur.style.MozOpacity = strength;
+	else if (cur.filters)
+		cur.filters.alpha.opacity = strength * 100;
+}
+
+function showMenu()
+{
+	menuTable.style.visibility = 'visible';
+}
+
+function pageResize(event)
+{
+//	var height = document.documentElement.clientHeight - topbar.clientHeight - menuTable.clientHeight - procTabTable.clientHeight; //-- GL - se comenta ya que no se corresponde por el cambio de look and feel
+	var height = document.documentElement.clientHeight - document.getElementById("topbartable").clientHeight - menuTable.clientHeight - procTabTable.clientHeight;
+
+	// Se evita que la barra del menu se achique mas que la barra de herramientas superior
+	if (document.documentElement.clientWidth < minPageWidth)
+		menuTable.style.width = minPageWidth;
+	else
+		menuTable.style.width = "100%";
+
+	if (document.documentElement.clientWidth > 0)
+	{
+		procManager.resizeCurrent(height, document.documentElement.clientHeight - height, document.documentElement.clientWidth + 2);
+
+		resizeProcTabContainer();
+	}
+
+	if (document.documentElement.clientWidth > 0)
+		pageTable.width = document.documentElement.clientWidth;
+}
+
+function getClientAreaHeight()
+{
+	//return document.documentElement.clientHeight - topbar.clientHeight - menuTable.clientHeight - procTabTable.clientHeight; //-- GL - se comenta ya que no se corresponde por el cambio de look and feel
+	return document.documentElement.clientHeight - document.getElementById("topbartable").clientHeight - menuTable.clientHeight - procTabTable.clientHeight;
+}
+
+function resizeProcTabContainer()
+{
+    var a = document.documentElement.clientHeight - procTabTable.clientHeight + 5;
+	var b = document.getElementById("topbartable").clientHeight + menuTable.clientHeight;
+	//procTabTable.style.top = a > b ? a : b; //-- GL - se comenta ya que no se corresponde por el cambio de look and feel, adicionalmente, esto estaba generando un Bug en IE9 el cual calculaba mal el resize de la pagina.
+
+	procTabTable.style.width = document.documentElement.clientWidth; // - 10;
+	var tc = document.getElementById("apptable");
+	if(tc){
+		if(tc.width!=document.documentElement.clientWidth)
+			tc.width = document.documentElement.clientWidth;
+		else
+			tc.width = document.documentElement.clientWidth-1;
+	}
+}
+
+function procChangeCallBack()
+{
+	pageResize();
+	
+	refreshButtonsState();
+}
+
+/* Esta funcion sirve para forzar el redibujado de la tabla de procesos de manera
+   que se actualice segun el ancho dinamicamente al cargar la pagina. El problema se
+   da porque tiene posicionamiento absoluto. */
+function initProcTable()
+{
+	procTabTable.style.visibility = "visible";
+}
+
+function initializeWorkSpace()
+{
+	
+	var url, name;
+	url = opener.getInitUrl();
+	
+	if (url != '')
+	{
+		name = opener.getInitName();
+		procManager.startNew(url, name, true);
+	}
+	else
+		procManager.startEmpty();
+		
+	pageLoadEnd();
+
+
+	if(UseStaticInitalPage == '1'){
+	// No es la pagina Statica Inicial
+		IsNotInitalPageStatic = false;
+	}
+	else{
+	// Si es la pagina Statica Inicial
+		IsNotInitalPageStatic = true;
+	}
+		
+}
+
+
+function openWorkSpace()
+{
+	// Se valida que no se haya abierto otra sesio'n
+	if (!checkBeforeSubmit(true))
+		return;
+
+	// Si se indico' una cantidad ma'xima de espacios de trabajo se controla que no se exceda la misma
+	// agregar +1 a la variable 5
+
+	if ((maximumWS != 0) && (procManager.getCount() >= maximumWS))
+	{
+		NoMoreWorkSpace = true;
+		alert("Se ha alcanzado la cantidad m\u00E1xima de 'Espacios de Trabajo' definidos para su usuario.");
+		return;
+	}else{
+		NoMoreWorkSpace = false;
+	}
+	//alert('se activo todo')
+	//IsNotInitalPageStatic = true 
+	procManager.startEmpty();
+}
+
+
+// En caso que se venga de una tecla y haya algo en el espacio de trabajo se pregunta antes de cerrarlo
+
+function closeWorkSpace(fromKeyboard)
+{
+
+	if(IsNotInitalPageStatic){
+		if (fromKeyboard && !procManager.currentIsEmpty())
+		{
+			if (!confirm("Si cierra espacio de trabajo se perder\u00E1 la informaci\u00F3n contenida en el mismo."))
+				return;
+		}
+		
+		procManager.closeCurrent();
+	}
+	else{
+		return ;
+	}
+}
+
+function back()
+{
+	procManager.back();
+}
+
+function forward()
+{
+	procManager.forward();
+}
+
+function refresh()
+{
+	// Se valida que no se haya abierto otra sesio'n
+	if (!checkBeforeSubmit(true))
+		return;
+
+	procManager.refreshCurrent();
+}
+
+function refreshButtonsState()
+{
+
+}
+
+function newMessage(text, call, type, mark)
+{
+	// Se recuerda para cerrar la alerta actual de forma condicional (closeCurrentAlertIf)
+	alertType = type;
+
+	if ((type == 'C') || (type == 'c'))
+	{
+		alertCall = call;
+		messageText.innerText = text == "" ? "Usted tiene una confirmaciÃ³n pendiente." : text;
+		messageTitle.innerText = "Alerta";
+		alertCloseButton.style.visibility = "visible";
+		messageRef.style.display = "inline";
+		alertMark = null;
+	}
+	else if ((type == 'M') || (type == 'm'))
+	{
+		// En caso que el paso actualmente visible sea el de esta marca no se mostrara' la alerta
+		if (procManager.isCurrentMark(mark))
+		{
+			closeAlert();
+			return;
+		}
+
+		alertCall = call;
+		messageText.innerText = text == "" ? "Usted tiene un mensaje." : text;
+		messageTitle.innerText = "Alerta";
+		alertCloseButton.style.visibility = "visible";
+		messageRef.style.display = "inline";
+		alertMark = mark;
+	}
+	else
+	{
+		messageText.innerText = text;
+		alertCall = null;
+		messageTitle.innerText = "Mensaje";
+		messageRef.style.display = "none";
+		alertCloseButton.style.visibility = "visible";
+		alertMark = null;
+	}
+	
+	// Se comienza a hacer "pings" para mantener la sesio'n
+	processAlerts(getGetAlertUrl, getRmvAlertUrl, true);
+	
+	showAlert();
+}
+
+
+/**
+ * Permite cerrar la alerta actual (si la hay) segu'n algunos criterios. Si alguno de los para'metros es null
+ * no se toma en cuenta.
+ * Se llama directamente desde co'digo GX.
+ */
+function closeCurrentAlertIf(text, type, call, mark)
+{
+	// Si no hay alerta visible no se hace nada
+	if (messageBody.style.visibility != 'visible')
+		return;
+
+	if ((type != null) && (type != alertType))
+		return;
+
+	if ((text != null) && (text != messageText.innerText))
+		return;
+
+	if ((call != null) && (call != alertCall))
+		return;
+
+	if ((mark != null) && (mark != alertMark))
+		return;
+
+	closeAlert();
+}
+
+function closeAlert()
+{
+	messageBody.style.visibility = 'hidden';
+	messageBack.style.visibility = 'hidden';
+	alertCloseButton.style.visibility = 'hidden';
+	processAlerts(getGetAlertUrl, getRmvAlertUrl, false);
+}
+
+function printPage()
+{
+	procManager.printCurrent();
+}
+
+function closeSession()
+{
+	window.close();
+}
+
+function nextWorkspace()
+{
+	if (procManager != null)
+		procManager.nextWorkspace();
+}
+
+function prevWorkspace()
+{
+	if (procManager != null)
+		procManager.prevWorkspace();
+}
+
+function showCover()
+{
+	coverAll.style.display = "inline";
+}
+
+function hideCover()
+{
+	coverAll.style.display = "none";
+}
+
+function getElements(tagName)
+{
+	return procManager.getElements(tagName);
+}
+
+function getScrollTop()
+{
+	return procManager.getScrollTop();
+}
+
+// Setea el atributo "src" de un IFRAME. Esto se utiliza para
+// que las pa'ginas externas solamente funcionen desde dentro del entorno.
+function setSrc(iframe, src)
+{
+    iframe.src = src;
+}
+
+// Verificando la existencia de esta funcio'n se ve si se esta' o no dentro del entorno.
+function environment(){}
+
+function closeAll()
+{
+	// Se cierra el menu'
+	closeAllMenu();
+}
+
+function isExternal()
+{
+	// Se realiza este control porque si el usuario podri'a llegar a provocar esto antes que se
+	// inicialice el manejador de procesos
+	if (procManager != null)
+		return procManager.isExternal();
+}
+
+// Devuelve el "offset" izquierdo absoluto de un elemento.
+function offsetLeft(element)
+{
+	var x = 0;
+
+	do
+		x += element.offsetLeft - element.scrollLeft;
+	while ((element = element.offsetParent) != null);
+
+	return x;
+}
+
+// Devuelve el "offset" superior absoluto de un elemento.
+function offsetTop(element)
+{
+	var aux, y = element.offsetTop;
+
+	while ((aux = element.offsetParent) != null)
+	{
+		y += aux.offsetTop;
+		element = aux;
+	}
+
+	return y;
+}
+
+function getScrollLeft()
+{
+	return procManager.getScrollLeft();
+}
+
+var stopPinging = true;
+var globalPingCount = 0;
+var globalServerRequestCount = 0;
+var currentRequests = new Array();
+var recentRequests = new Array();
+// En caso que el programa que consulta las alertas sea viejo se evita el control ejecucio'n de
+// pedidos ya que no se dispondra' de la informacio'n necesaria
+var avoidReqCheckCausedOldGetAlert = false;
+var noRecentReqCausedOldGetAlert = false;
+var initStamp = new Date().getTime();
+
+// Devuelve la cantidad de milisegundos desde que se inicio' la aplicacio'n hasta el momento actual.
+// Se utiliza para generar identificadores de pedidos u'nicos. Se evita usar directamente el "getTime()" para
+// ahorrar caracteres, ya que esta cantidad de de'cimas de segundos es mucho menor que la cantidad de
+// milisegundos ocurridos desde el 1/1/1970.
+function getTimeStamp()
+{
+	var x = Math.ceil(((new Date()).getTime() - initStamp) / 100);
+
+	// Cada 150 minutos se reinicia dado que no habra' conflictos entre pedidos si se llegara a dar un mismo id
+	if (x > 90000)
+		initStamp = new Date().getTime()
+
+	return x;
+}
+
+// Indica si el identificador dado esta' en ejecucio'n en el servidor actualmente
+function executionHasEnded(reqId)
+{
+	if (avoidReqCheckCausedOldGetAlert)
+		return false;
+
+	for (var i = 0; i < currentRequests.length; i++)
+		if (reqId == currentRequests[i])
+			return false;
+
+	return true;
+}
+
+// Indica si el requerimiento dado se llego' a ejecutar en el servidor
+function executionHasStarted(reqId)
+{
+	if (noRecentReqCausedOldGetAlert)
+		return true;
+
+	for (var i = 0; i < recentRequests.length; i++)
+		if (reqId == recentRequests[i])
+			return true;
+
+	return false;
+}
+
+function setExecutingReqs(reqs)
+{
+	if (reqs != null)
+		currentRequests = reqs.nodeValue.split(';');
+	else
+		currentRequests.length = 0;
+}
+
+function setRecentExecutingReqs(reqs)
+{
+	if (reqs != null)
+		recentRequests = reqs.nodeValue.split(';');
+	else
+		recentRequests.length = 0;
+}
+
+function getServerRequestCount()
+{
+	return globalServerRequestCount;
+}
+
+function CallPrinter(prnt,path,fnam,ncpy)
+{
+	if (path != "") {
+			var printer = controlFactoryInstance.getInstance("Printer", [['ACX','Control de impresión','activex/PrintControl.cab#version=2,1,0,0','CLSID:F94FBCE4-EF19-40C7-BD3E-2FA729853ABB',null]]);
+			printer.invoke("PrintDocWithCopies", [prnt, path, fnam, ncpy], null);
+	}
+}
+
+// Funcio'n que se encarga del pedido constante de alertas
+// 'forPinging' en true indica que hay una alerta abierta y por lo tanto se llama al programa de alertas
+// so'lo para mantener la sesio'n activa y verificar los pedidos que esta'n en ejecucio'n.
+function processAlerts(getUrl, rmvUrl, forPinging)
+{
+	var req, pollingTimeout;
+	var timeout = 10000;
+	var localPingCount = 0;
+	
+	// Si hay una alerta abierta
+	if (forPinging)
+	{
+		// Con esto se evita que haya ma's de un "timer" para hacer "pings"
+		localPingCount = ++globalPingCount;
+		stopPinging = false;
+	}
+	else
+		stopPinging = true;
+
+	var handler = function onreadystatechangeHandler()
+	{
+		var elem, id, text, call, type, mark;
+		
+		if (req.readyState == 4)
+		{
+			// Se definen los requerimientos en ejecucio'n
+			if (req.status == 200)
+			{
+				// Esto se utiliza para comprobar que se haya logrado ir al servidor al menos 3 veces antes de reportar que un pedido
+				// no esta' ma's en ejecucio'n
+				globalServerRequestCount++;
+			
+				if (req.responseXML.firstChild && req.responseXML.firstChild.tagName == "expired")
+				{
+					// La sesio'n caduco' por inactividad del usuario
+					if (confirm("Su sesi\u00F3n caduc\u00F3 porque transcurri\u00F3 mucho tiempo sin actividad.\n\n¿Desea cerrar el navegador ahora para volver a loguearse?"))
+						self.close();
+					return;
+				}
+
+				if (req.responseXML.getElementsByTagName("reqs").length > 0)
+				{
+					avoidReqCheckCausedOldGetAlert = false;
+					setExecutingReqs(req.responseXML.getElementsByTagName("reqs")[0].firstChild);
+
+					if (req.responseXML.getElementsByTagName("recent-reqs").length > 0)
+					{
+						setRecentExecutingReqs(req.responseXML.getElementsByTagName("recent-reqs")[0].firstChild);
+						noRecentReqCausedOldGetAlert = false;
+					}
+					else
+					{
+						// No hay elemento "recent-reqs", el programa que consulta las alertas es viejo
+						noRecentReqCausedOldGetAlert = true;
+					}
+				}
+				else
+				{
+					// No hay elemento "reqs", el programa que consulta las alertas es viejo
+					avoidReqCheckCausedOldGetAlert = true;
+				}
+			}
+		
+			// Si se indica que se deje de hacer "pings" no se define el "timer"
+			if (forPinging)
+			{
+				// Si se indico' alguna realizacio'n de "pings" luego de esta, se aborta esta
+				if (!stopPinging && (localPingCount == globalPingCount))
+					pollingTimeout = setTimeout(gAlert, timeout);
+
+				return;
+			}
+			
+			if (req.status == 200)
+			{
+				// Control para evitar atender respuestas vaci'as
+				if (req.responseXML.getElementsByTagName("type").length > 0)
+				{
+					// Se consiguen los datos de la alerta
+					elem = req.responseXML.getElementsByTagName("type")[0].firstChild;
+					type = elem != null ? elem.nodeValue : "";
+					elem = req.responseXML.getElementsByTagName("id")[0].firstChild;
+					id = elem != null ? elem.nodeValue : "";
+
+					if (type != "P"){
+						elem = req.responseXML.getElementsByTagName("text")[0].firstChild;
+						text = elem != null ? elem.nodeValue : "";
+						elem = req.responseXML.getElementsByTagName("call")[0].firstChild;
+						call = elem != null ? elem.nodeValue : "";
+
+						elem = req.responseXML.getElementsByTagName("mark")[0].firstChild;
+						mark = elem != null ? elem.nodeValue : "";
+
+						rAlert(id);
+
+						// Se genera la alerta
+						newMessage(text, call, type, mark);
+					}
+					else{
+						/* AV - 01/06/2015 - Req. de Impresion   */ 
+						if (type == "P"){
+							elem = req.responseXML.getElementsByTagName("prn-list")[0];
+							if (elem != null) {
+								var cn = elem.childNodes;
+								for (var i = 0; i < cn.length; i++) {
+									if (cn[i].nodeType == 1) {
+										path = fnam = ncpy = prnt = "";
+
+										for (var j = 0; j < cn[i].childNodes.length; j++) {
+											elem = cn[i].childNodes[j];
+											var localName = elem.nodeName;
+
+											if (localName == "prnt") {
+												prnt = elem.firstChild != null ? elem.firstChild.nodeValue : "";
+											}
+											else if (localName == "path") {
+												path = elem.firstChild != null ? elem.firstChild.nodeValue : "";
+											}
+											else if (localName == "fnam") {
+												fnam = elem.firstChild != null ? elem.firstChild.nodeValue : "";
+											}
+											else if (localName == "ncpy") {
+												ncpy = elem.firstChild != null ? elem.firstChild.nodeValue : "";
+											}
+										}
+
+										CallPrinter(prnt,path,fnam,ncpy);
+									}
+								}
+							}
+						}	
+						
+						rAlert(id);                                                     
+						pollingTimeout = setTimeout(gAlert, timeout);										
+					}
+				}
+				else
+					pollingTimeout = setTimeout(gAlert, timeout);
+			}
+			else
+				pollingTimeout = setTimeout(gAlert, timeout);
+		}
+	}
+
+	var gAlert = function getAlert()
+	{
+		// Si se dejo' de enviar "pings" se termina la ejecucio'n
+		if (forPinging && (stopPinging || (localPingCount < globalPingCount)))
+			return;
+			
+		req.abort();
+		req.onreadystatechange = handler;
+
+		try
+		{
+			// Se envi'an los identificadores de "popups" a remover
+			req.open("POST", getUrl + ',' + toRmovePopupIds + (forPinging ? ',1' : ',0'), true);
+		}
+		catch (e)
+		{
+			// Puede dar un acceso denegado si viene un puerto equivocado (sucede con un balanceador en algunos casos
+			// que no le quita el puerto a la respuesta y la URL base difiere de la que se esta' mandando aqui')
+			getUrl = fixUrl(getUrl);
+			req.open("POST", getUrl + ',' + toRmovePopupIds + (forPinging ? ',1' : ',0'), true);
+		}
+
+		toRmovePopupIds = "";
+		req.send(null);
+	}
+	
+	var rAlert = function removeAlert(id)
+	{
+		req.abort();
+
+		// No se setea una funcio'n que atienda la respuesta porque no se necesita procesar la misma
+		try
+		{
+			req.open("GET", rmvUrl + "?" + id, true);
+		}
+		catch (e)
+		{
+			// Puede dar un acceso denegado si viene un puerto equivocado (sucede con un balanceador en algunos casos
+			// que no le quita el puerto a la respuesta y la URL base difiere de la que se esta' mandando aqui')
+			rmvUrl = fixUrl(rmvUrl);
+			req.open("GET", rmvUrl + "?" + id, true);
+		}
+
+		req.send(null);
+	}
+
+	if (window.XMLHttpRequest)
+	{
+		req = new XMLHttpRequest();
+		req.onreadystatechange = handler;
+	}
+	else
+	{
+		if (window.ActiveXObject)
+		{
+			// Internet Explorer
+			req = new ActiveXObject("Microsoft.XMLHTTP");
+			req.onreadystatechange = handler;
+		}
+	}
+
+	// Se busca por primera vez la alerta
+	gAlert();
+}
+
+// Devuelve el nombre del objeto que permite obtener pasos desde el sevidor
+function getGetStepUrl()
+{
+	return getStepUrl;
+}
+
+function getGetErrorMsgUrl()
+{
+	return getErrorMsgUrl;
+}
+
+function getFlashCodeBase()
+{
+	return flashCodeBase;
+}
+
+function pageLoadEnd()
+{
+	var elem = document.getElementById("initialCover");
+
+	// Se redefine el ancho para que se reposicione internamente la barra de herramientas
+	document.getElementById('topbartable').width = "100%";
+
+	document.body.removeChild(elem);
+	self.attachEvent('onunload', winUnload);
+	try
+	{
+		opener.stopTimer();
+		opener.detachEvent('onunload', opener.winUnload);
+	}
+	catch (e) {}
+}
+
+function firstWaitMessage()
+{
+	t = (document.documentElement.scrollHeight - 105) / 2;
+	l = (document.documentElement.scrollWidth - 479) / 2;
+
+	wait.style.left = l;
+	wait.style.top = t;
+
+	wait.style.display = 'inline';
+}
+
+function bodyOnload()
+{
+	//AV topbar.TCallLabel('/', 'SetParams');
+	var topbar = document.getElementById("topbar");
+	var apptab = document.getElementById("tabContainer");
+	var apptabContainer = document.getElementById("apptabcontainer");
+	TabManager.Initialize(apptabContainer, ProcessTabBuilder);
+	procManager = new ProcessManager(procContainer, apptab, 'procChangeCallBack()', TabManager);
+//AV	procManager = new ProcessManager(procContainer, apptab, 'procChangeCallBack()', TabManager);
+	initializeWorkSpace();
+	initProcTable();
+
+	// Se inicializa el pedido de alertas
+	processAlerts(getGetAlertUrl, getRmvAlertUrl, false);
+
+	// Se inicializa el pedido de alertas
+//	processAlerts(getGetAlertUrl, getRmvAlertUrl, false);
+
+	if (opener.getLogoUrl)
+	{
+		var logoUrl = opener.getLogoUrl();
+		if (logoUrl != '')
+		{
+			changeLogo(opener.getLogoUrl());
+		}
+	}
+	setTimeout(function() {
+		resizeProcTabContainer();
+		},50);
+
+	//- AV 16/01/2023: Se vacia script menucode por provocar errores con el print (SGR 210344)
+	document.getElementById("menuCode").src = "";
+}
+
+// Devuelve el separador de decimales.
+function getDecSep()
+{
+	return numberSeps[1];
+}
+
+// Devuelve el separador de miles.
+function getThoSep()
+{
+	return numberSeps[0];
+}
+
+function attachUnload(handler)
+{
+	if (unloadEventHandlers == null)
+		unloadEventHandlers = new Array();
+
+	unloadEventHandlers.push(handler);
+}
+
+// Identificadores de "popups" a remover
+var toRmovePopupIds = "";
+
+function environment(){}
+
+function getCookie(name)
+{
+	var values, cookie = document.cookie.split("; ");
+
+	for (var i = 0; i < cookie.length; i++)
+	{
+		values = cookie[i].split("=");
+		if (name == values[0])
+			return values[1];
+	}
+
+	return null;
+}
+
+function isSameInstanceId()
+{
+	if (instanceIdCheckAlreadyFailed)
+		return false;
+
+	var id = getCookie("FRInstanceId");
+
+	// Si no se encuentra se asume que no hubo cambio
+	if ((id == null) || (id == "") || (instanceId == null) || (instanceId == "") || (id == instanceId))
+		return true;
+
+	instanceIdCheckAlreadyFailed = true;
+
+	return false;
+}
+
+// 'delayMessage' permite definir un timer para mostrar la alerta y asi' devolver el control enseguida, si no se hace asi', las invocaciones 
+// iniciadas desde flash se realizan ma's de una vez.
+function checkBeforeSubmit(delayMessage)
+{
+	if (isSameInstanceId())
+		return true;
+
+	if (delayMessage)
+		setTimeout('alert("Usted inici\u00F3 una nueva sesi\u00F3n en otra pantalla lo cual invalid\u00F3 la sesi\u00F3n de esta pantalla.")', 1);
+	else
+		alert("Usted inici\u00F3 una nueva sesi\u00F3n en otra pantalla lo cual invalid\u00F3 la sesi\u00F3n de esta pantalla.")
+
+	return false;
+}
+
+// Relativiza la Url
+function fixUrl(url)
+{
+	var i = url.indexOf("://");
+
+	if (i > -1)
+	{
+		i = url.indexOf('/', i + 3);
+		if (i > -1)
+			return url.substring(i);
+	}
+
+	return url;
+}
+
+function getReaderVersion()
+{
+	var pdfTest = document.getElementById("pdfTest");
+	var versionDataArray = pdfTest.GetVersions().split(",");
+
+	for(var x = 0; x < versionDataArray.length; x++)
+	{
+		var tmpArray = versionDataArray[x].split("=");
+		
+		// El segundo elemento del vector es la versio'n del "plugin"
+		pluginVersion = tmpArray[1];
+
+		// Hay valores en blanco y no definidas
+		if(typeof(pluginVersion) != "undefined")
+			return pluginVersion.substring(0, 1);
+	}
+
+	return 5;
+}
+
+function getIEVersion()
+{
+	return /*@cc_on function(){ switch(@_jscript_version){ case 1.0:return 3; case 3.0:return 4; case 5.0:return 5; case 5.1:return 5; case 5.5:return 5.5; case 5.6:return 6; case 5.7:return 7; }}()||@*/0;
+}
+
+// Problema con el Reader 7 y el IE 6
+function hasPdfCompatibilityProblem()
+{
+	if (compatibilityProblemExists != null)
+		return compatibilityProblemExists;
+
+	if (compatibilityProblemExists == null)
+	{
+		compatibilityProblemExists = true;
+
+		// Se calcula so'lo la primera vez
+		var browserVer = getIEVersion();
+		if (browserVer >= 7)
+			compatibilityProblemExists = false;
+		else
+		{
+			var readerVer = getReaderVersion();
+			if (readerVer >= 8)
+				compatibilityProblemExists = false;
+		}
+	}
+
+	return compatibilityProblemExists;
+}
+
+function getMaxWaitCalls()
+{
+	return maxWaitCalls;
+}
+
+function changeLogo(logoUrl)
+{
+    //AV topbar.SetVariable("logoUrl", logoUrl);
+    //AV topbar.TCallLabel("/", "SetLogo");
+}
+
+function resetWorkspaces()
+{
+    procManager.closeAll();
+}
+
+</script>
+
+</head>
+<!-- font-size tiene que ser 1 para que IE no agregue paddings extra en las celdas de las tablas -->
+<body onfocus="procManager.focusOnCurrent()" oncontextmenu="return false;" bgcolor="#B0B9C0" onresize="pageResize(event);" onscroll="pageMousedown(event);" scroll="no" class="FormBase" topMargin="0" leftMargin="0" style="width: 100%; height: 100%; font-size:1pt" >
+
+
+<object id="pdfTest" classid="clsid:CA8A9780-280D-11CF-A24D-444553540000" width="0" height="0"></object>
+
+<!-- DIV que cubre todo al inicio hasta que la pa'gina este' completamente cargada -->
+<div id="initialCover" style="z-index: 1000; cursor: wait; position: absolute; left: 0; top: 0; width: 100%; height: 100%; background-color: rgb(176, 185, 192)">
+	<div id="wait" style="BACKGROUND-COLOR: #ffffff; z-index: 300; position: relative; display: none;">
+		<table bgcolor="#888888" cellpadding="0" cellspacing="3" width="479px">
+			<tr>
+				<td>
+					<table bgcolor="#FFFFFF" cellSpacing="0px" cellPadding="0px">
+						<tr height="65">
+							<td width="21"></td>
+							<td>
+								<font color="#969696" face="Verdana" size="5">Cargando, por favor espere...</font>
+							</td>
+							<td width="16"></td>
+							<td valign="middle">
+								<table cellSpacing="0px" cellPadding="0px">
+									<tr><td height="18px"></td></tr>
+									<tr valign="middle">
+										<td>
+											<img src="images/wait.gif">
+										</td>
+									</tr>
+									<tr>
+										<td height="14px"></td>
+									</tr>
+								</table>
+							</td>	
+							<td width="18"></td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</table>
+	</div>
+</div>
+
+<table id="pageTable" width="100%" cellpadding="0" cellspacing="0">
+<tr>
+<td bgcolor="#B0B9C0">
+
+	<table id="topbartable" cellpadding="0" cellspacing="0" width="101%">
+	<tr>
+	<td>
+		<div id="topbarcontainer" style="width: 100%; height: 43px;">
+			<div id="header">
+				<a id="logoBco"><img style="border-right:1px solid rgb(0, 0, 0)" src="images/logo_banco.png"></a>
+				<div class="Temp">
+					<div class="CenterContent" id="topbar" style="height: 43px;">
+						<a id="logo"><img style="border:0px" src="images/logo_new.gif"></a>
+						<ul class="actions">
+							<li><a href="javascript:procManager.back();" class="back" title="Atr&aacute;s">Atr&aacute;s</a></li>
+							<li><a href="javascript:procManager.forward();" class="next" title="Adelante">Adelante</a></li>
+							<li><a href="javascript:top.refresh();" class="refresh" title="Recargar (F5)">Recargar</a></li>
+							<li><a href="javascript:procManager.printCurrent();" class="print" title="Imprimir (F12)">Imprimir</a></li>
+						</ul>
+						<div id="UserDate">
+							<div class="user">
+								<span class="before"></span>
+								<span id="user_name"></span><a href="javascript:top.closeSession();" class="logout" title="Salir">Salir</a>
+							</div>
+							<p class="date" id="system_date"></p>
+						</div>				    
+					</div>
+				</div>
+			</div>
+		</div>
+	</td>
+	</tr>
+	</table>
+
+	<table background="images/menuback.gif" id="menuTable" class="entireMenu" cellspacing="0" cellpadding="0" onselectstart="return false;">
+	<tr height="34">
+		<td width="3px"></td>
+		<td>
+		<div id="menuBase" style="cursor: default;"></div> <!-- El cursor es default porque sino en el borde de los menuButton <A> queda mal -->
+		</td>
+	</tr>
+	</table>
+
+	<div id="procContainer"></div>
+	
+	<table cellspacing="0" cellpadding="0" border="0" style="background-color: rgb(105, 105, 105); width: 100%; height: 26px; position: absolute; left: 0px; bottom: 0px; right: 0px;text-align:center;" id="procTabTable">
+		<tr>
+		  <td width="100%">
+			<div id="Footer" class="Clear">
+				<div id="apptabcontainer" class="CenterContent" >
+				<!-- TOP BAR -->
+				</div>
+			</div>	
+		  </td>
+		</tr>
+	</table>
+	<!--
+	<table id="procTabTable" border="0" cellpadding="0" cellspacing="0" style="position:absolute; visibility: hidden;">
+	<tr>
+		<td width="100%" id="apptabcontainer">
+			<!-- TOP BAR 
+		</td>
+	</tr>
+	</table>
+	-->
+</td>
+</tr>
+</table>
+
+<iframe src="javascript:''" onfocus="document.body.focus()" SCROLLING='no' FRAMEBORDER='0' id="messageBack" style="position: absolute; display: block; z-index: 15000; visibility: hidden;"></iframe>
+
+<div id="messageBody" style="position: absolute; z-index: 15001; visibility: hidden">
+	<table cellpadding="0" cellspacing="2" bgcolor="#496381">
+		<tr bordercolor="#FFFFFF"><td>
+			<table cellpadding="1" cellspacing="0" style="font-weight: bold; font-size: 11px; border-width: 1px 1px 0px 1px; border-color: #FFFFFF; border-style: solid" bgcolor="#496381">
+			<tr>
+				<td height="21" align="left">
+					&nbsp;&nbsp;<font color="#FFFFFF" id="messageTitle" face="Verdana">Mensaje</font>
+				</td>
+				<td align="right" style="padding-top: 3px; padding-right: 4px">
+					<img style="cursor: pointer" id="alertCloseButton" onclick="closeAlert()" src="images/close.gif">
+				</td>
+			</tr>
+			<tr bgcolor="#FFFFFF">
+				<td width="150" align="center" colspan="2">
+					<table width="100%" height="100%" cellpadding="0" cellspacing="2" bgcolor="#4B6582">
+						<tr>
+						<td align="center" height="74">
+							<table align="center" width="100%" height="100%" cellpadding="2" cellspacing="2" bgcolor="#FFFFFF">
+							<tr><td>
+								<table align="center" width="100%" height="100%" cellpadding="2" cellspacing="2" bgcolor="#FFFFFF">
+								<tr>
+								<td align="center" bgcolor="#FFFFFF" style="font-size: 11px;">
+									<font color="#000000" id="messageText" face="Verdana"></font>
+									<br>
+									<a id="messageRef" href="javascript:openAlert();"><font color="#0000FF" face="Verdana">Detalle...</font></a>
+								</td>
+								</tr>
+								</table>
+							</td></tr>
+							</table>
+						</td>
+						</tr>
+					</table>
+				</td>
+			</tr>
+		</table>
+	</td></tr>
+	</table>
+</div>
+
+<!-- DIV para la inclusio'n de controles -->
+<div id="clientControlContainer">
+</div>
+
+<script>
+	// Se muestra el cartel de espera inicial
+	firstWaitMessage();
+	
+</script>
+
+<link rel="stylesheet" type="text/css" href="styles/menu.css"/>
+<link rel="stylesheet" type="text/css" href="styles/container.css"/>
+<script type="text/javascript" src="javascripts/tabmanager.js"></script>
+<script type="text/javascript" src="javascripts/processmanager.js"></script>
+<script type="text/javascript" src="javascripts/menu.js"></script>
+<script type="text/javascript" src="javascripts/popupmanager.js"></script>
+<script type="text/javascript" src="javascripts/drag.js"></script>
+<script type="text/javascript" src="javascripts/controlfactory.js"></script>
+<script type="text/javascript" src="javascripts/menubuilder.js"></script>
+<script type="text/javascript" src="javascripts/plugininitializer.js"></script>
+<script type="text/javascript" src="javascripts/generalutils.js"></script>
+<script type="text/javascript" src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+
+<!-- DIV para la calculadora -->
+<script language="JavaScript" type="text/javascript">
+
+function addEvent(el, evname, func) {
+	if (el.attachEvent) { // IE
+		el.attachEvent("on" + evname, func);
+	} else if (el.addEventListener) { // Gecko / W3C
+		el.addEventListener(evname, func, true);
+	} else {
+		el["on" + evname] = func;
+	}
+};
+
+function removeEvent(el, evname, func) {
+	if (el.detachEvent) { // IE
+		el.detachEvent("on" + evname, func);
+	} else if (el.removeEventListener) { // Gecko / W3C
+		el.removeEventListener(evname, func, true);
+	} else {
+		el["on" + evname] = null;
+	}
+};
+
+function getElement(ev) {
+	return ev.currentTarget || window.event.srcElement;
+};
+
+function getTargetElement(ev) {
+	return ev.target ||window.event.srcElement;
+};
+
+var _Calculator = {
+
+	_firstExecution:  true, //-GL 26/09/2019 - me indica si es la primera ejecucio'n de la calculadora, esto lo utilizo para no deteriorar la performance
+	_opened :        false,
+	_posicionX:         '',
+	_posicionY:         '',
+	_openFirst:      false,
+	_operador:       false,
+	_formula:           '',
+	_numeric:        false,
+	_doControl:      false,
+	_Error:          false,
+	_resultado:      false, //-GL 26/09/2015 - usada para controlar que no puedan editar el resultado luego de un igual
+	_historyXML:        '', //-GL 01/10/2019 - Graba el xml del log que existe en la tabla de log de la calculadora para el dia corriente
+	//----------------------
+	_IsHistoryVisible: true,
+	_HistoryFormula:     [], //-- Array of characters
+	_HistoryResults:     [], //-- Array of characters
+	_TopeFormula:         0,
+	//----------------------
+	_ansResult:         "0",
+	
+	openCalc : function () {
+	
+		_Calculator._formula 		  = '';
+		_Calculator._TopeFormula 	  = 0;
+		_Calculator._IsHistoryVisible = true;
+			
+		document.calculator.ans.value = "0";
+		
+		if(_Calculator._opened){
+			_Calculator._opened    = false;
+			_Calculator._resultado = false;
+			_Calculator.closeCalc();
+			return;
+		}
+			
+		_Calculator._opened = true;
+		var elElemento = document.getElementById('dxy');
+		
+		if(elElemento){
+			addEvent(elElemento, "keydown", _Calculator._keyEvent);
+			addEvent(elElemento, "keypress", _Calculator._keyEvent);
+			addEvent(elElemento, "mousedown", _Calculator._checkCalculator);
+			//Agregar Movimientos
+			elElemento.style.position = 'absolute';
+			elElemento.style.display = 'block';
+
+			if(!_Calculator._openFirst){
+
+				_Calculator._openFirst= true;
+				elElemento.style.top = '128' + 'px';
+				elElemento.style.left = '800' + 'px';
+			}
+						
+			//al abrirlo dejamos el foco en el input resultado
+			$('#resultado').focus();
+		}
+				
+		this.hideAndShowHistory(); //-- hago el call porque de otra forma se genera un bug visual
+		
+	},
+
+	closeCalc : function () {
+	
+		//Eliminar handlers
+		_Calculator._formula   = "";
+		_Calculator._ansResult = "0";
+		_Calculator._opened    = false;
+		_Calculator._resultado = false;//26/06/2015 inicializamos
+		_Calculator._Error     = false;
+		_Calculator._doControl = false;
+		_Calculator._numeric   = false;
+		
+		var elElemento = document.getElementById('dxy');
+		if(elElemento){
+			removeEvent(elElemento, "keydown", _Calculator._keyEvent);
+			removeEvent(elElemento, "keypress", _Calculator._keyEvent);
+			removeEvent(elElemento, "mousedown", _Calculator._checkCalculator);
+			elElemento.style.display = 'none';
+		}
+		//Al cerrarlo guardo la ultima posicion de la calculadora
+		_posicionX = elElemento.style.position.top;
+		_posicionY = elElemento.style.position.left;
+		//29/06/2015
+		document.calculator.ans2.value = ""; //#
+		
+		//-- Borro historía
+		_Calculator.deleteHistory();
+	},
+
+	_mouseMove : function (e){
+
+		x=e.screenX;
+		y=e.screenY;
+		document.calculator.mouseXField.value = x;
+		document.calculator.mouseYField.value = y;
+		var div = document.getElementById('dxy');
+		div.style.top = y;
+		div.style.left = x;
+
+	},
+
+	_mouseUp : function (e){
+		var calheader = document.getElementById('calheader');
+		if(calheader)
+			removeEvent(calheader, "mousemove", _Calculator._mouseMove);
+	},
+
+	_mouseDown : function(e) {
+		var calheader = document.getElementById('calheader');
+		if(calheader)
+			addEvent(calheader, "mousemove", _Calculator._mouseMove);
+	},
+
+	_keyEvent : function(e, actionExecutor, fromChild /* = false */){
+		var code = e.keyCode?e.keyCode:e.which;
+		var operadores  = ['+', '-', '*', '/'];
+		
+		  //para IE8
+		  if(code==107){
+			_Calculator.operadorCalc('resultado','+');
+			_Calculator._resultado = false;//26/06/2015
+			////Infra.CancelEvent(e, true);
+			return false;
+		  }
+		  //resta
+		  if(code==109){
+			_Calculator.operadorCalc('resultado','-');
+			_Calculator._resultado = false;//26/06/2015
+			//Infra.CancelEvent(e, true);
+			return false;
+		  }
+		  //divicion
+		  if(code==111){
+			_Calculator.operadorCalc('resultado','/');
+			_Calculator._resultado = false;//26/06/2015
+			//Infra.CancelEvent(e, true);
+			return false;
+
+		  }
+		  //multiplicacion
+		  if(code==106){
+			_Calculator.operadorCalc('resultado','*');
+			_Calculator._resultado = false;//26/06/2015
+			//Infra.CancelEvent(e, true);
+			return false;
+		  }
+		  //.
+		  if(code==110){
+			_Calculator.operadorCalc('resultado','.');
+			//Infra.CancelEvent(e, true);
+			return false;
+		  }
+
+
+		///intro
+		if(code==13){
+			_Calculator.saveCalc();
+			//Infra.CancelEvent(e, true);
+			return false;
+		}
+		else if(code==27){
+			_Calculator.closeCalc();
+			_Calculator._resultado = false;
+			//Infra.CancelEvent(e, true);
+			return false;
+		}
+		
+		if(code==8){
+			_Calculator.deleteCalc();
+			//Infra.CancelEvent(e, true);
+			return false;
+		}
+		
+		// letra s para borrar
+		if(code ==83){
+			document.calculator.ans.value = "0";
+			_Calculator._operador  = false;
+			_Calculator._numeric   = false;
+			_Calculator._resultado = false;//26/06/2015
+			//Infra.CancelEvent(e, true);
+			return false;
+		}
+		
+		//numeros
+		if((code>=48 && code<=57)||(code>= 96 && code<= 105)){
+			if(code>= 96 && code<= 105)
+				code = code - 48;
+			var num = String.fromCharCode(code);
+			_Calculator.numerosCalc('resultado', num);
+			return false;
+		}else{
+			return false;
+		}
+	},
+	
+	_operationField : function(){
+	
+		var formula = _Calculator._formula;
+		var largo   = 0;
+		var largo   = (formula.length);
+		var posIni  = largo - 27;
+		
+		formula     = formula.substring(0, largo);
+		
+		if (posIni > 0){
+		
+			formula = formula.substring(posIni, largo);
+			
+			var auxChar = '';
+			var encontre = false;
+			
+			var i = 0; 			
+			while (i <= largo && !encontre){
+				auxChar = formula.substring(i, (i+1));
+				if ((auxChar == '*') || (auxChar =='/') || (auxChar == '+') || (auxChar =='-')){
+					encontre = true;
+				}
+				if (!encontre) i += 1;
+			}
+			
+			if (largo > 27){
+				formula = '<< ' + (formula.substring(i, largo));
+			}
+		}
+		
+		formula  = this.formatFormula(formula);				
+		document.calculator.ans2.value = formula;
+		
+	},
+	
+	_checkCalculator : function(ev) {
+	
+		if(!_Calculator._opened)
+			return false;
+
+		var el = getElement(ev) || getTargetElement(ev);
+		//for (; el != null && el != calelement; el = el.parentNode);
+		//for (el != null && el != calelement; el = el.parentNode);
+		if (el == null) {
+			_Calculator.closeCalc();
+			return false;
+		}
+		
+	},
+	
+	_handler: function() {
+	},
+	
+	sendLog: function (log,resultado) {
+		var param= log.toString();
+		var param2 = resultado.toString();
+		if (window.XMLHttpRequest)
+		{
+			req = new XMLHttpRequest();
+			req.onreadystatechange =  _Calculator._handler;
+		}
+		else
+		{
+			 if (window.ActiveXObject)
+			{
+				// Internet Explorer
+				req = new ActiveXObject("Microsoft.XMLHTTP");
+				req.onreadystatechange =  _Calculator._handler;
+			}
+		}
+		//obtenemos la url
+		//var url = opener.getGetUrl();
+		var url = opener.getGetFRCalog();
+
+		calcurl = url+'?'+ encodeURIComponent(param) + ',' + encodeURIComponent(param2);
+
+		req.abort();
+		req.onreadystatechange = _Calculator._handler;
+		try
+		{
+			req.open("POST", calcurl, true);
+		}
+		catch (e)
+		{
+			req.open("POST",calcurl, true);
+		}
+		req.send("");
+	},
+	
+	CheckFirstExecution: function(){
+		return _Calculator._firstExecution;
+	},
+	
+	getLog: function () {
+				
+		if (window.XMLHttpRequest)
+		{
+			req = new XMLHttpRequest();
+			req.onreadystatechange =  _Calculator._handler;
+		}
+		else
+		{
+			 if (window.ActiveXObject)
+			{
+				// Internet Explorer
+				req = new ActiveXObject("Microsoft.XMLHTTP");
+				req.onreadystatechange =  _Calculator._handler;
+			}
+		}
+		//obtenemos la url
+		
+		var calcurl = opener.getFRCalHistory();
+
+		req.abort();
+		req.onreadystatechange = _Calculator._handler;
+				
+		try
+		{
+			req.open("POST", calcurl, false);
+		}
+		catch (e)
+		{
+			calcurl = fixUrl(calcurl);
+			req.open("POST",calcurl, false);
+		}
+		
+		req.send(null);
+		
+		_Calculator._historyXML     = req.responseXML;	
+		//_Calculator.ParseXMLtoHistoryLog(req.responseXML);
+		
+	},
+	
+	ParseXMLtoHistoryLog: function(){
+		
+		var nodeLog, nodeFRCalog, operacion, resultado, cantidadElementos, ResponseXML;
+		
+		ResponseXML = _Calculator._historyXML;
+	
+		nodeFRCalog = ResponseXML.getElementsByTagName("FrCalog")[0];
+		
+		cantidadElementos = nodeFRCalog.getElementsByTagName("CantidadElementos")[0].childNodes[0].nodeValue;
+		
+		if(cantidadElementos > 0){
+				
+			for(var i = 0; i < cantidadElementos; i++)
+			{
+				nodeLog   = nodeFRCalog.getElementsByTagName("Log")[i];
+				operacion = nodeLog.getElementsByTagName("Operacion")[0].childNodes[0].nodeValue;
+				resultado = nodeLog.getElementsByTagName("Resultado")[0].childNodes[0].nodeValue;
+				
+				//-- cargo la información de las operaciones realizadas en el día en la historia de la calculadora.
+				_Calculator.saveAndShowHistory(operacion, resultado);
+				//--
+				
+			}
+							
+			//-- hago scroll hasta el final del div.
+			var historyListContainer       = document.getElementById("historyListContainer");
+			historyListContainer.scrollTop = historyListContainer.scrollHeight;
+			//--------------------------------------
+			
+		}else{
+			//-- No hay elementos para el di'a
+		}
+		
+	},
+	
+	/* Reviso si contiene al menos 1 operador */
+	_checkOperation: function(opertaion){
+		return (/[\+,\-,\*,\/]/g).test(opertaion);
+	},
+	
+	saveCalc: function (){
+	
+		if(_Calculator._checkOperation(_Calculator._formula))
+		{				
+			///ver si el ultimo caracter es porsentaje
+			var total			  = 0;
+			var error             = false;
+			_Calculator._formula += _Calculator._ansResult;
+			var guardado          = _Calculator._formula;
+			var tamano            = (guardado.length) - 1;
+			var esOperador        = guardado.substring(tamano,guardado.length);
+			
+			if(esOperador == '%'){
+			
+				var subtotal = guardado.substring(0,tamano);
+				total        = guardado = (eval(subtotal) / 100); //-- Efectuo el calculo
+				total        = _Calculator.round(total);          //-- Redondeo
+				var auxLog   = subtotal + "%";
+				_Calculator.sendLog(auxLog,total);
+				_Calculator._resultado = false;
+				
+			}else if((esOperador == '*') || (esOperador =='/') || (esOperador == '+') || (esOperador =='-')  || (esOperador =='.') || (esOperador == '%')){
+				//Si termina en un operador no se realiza el calculo hasta que el usuario lo escriba bien.
+			}else{
+				//realizo la operaci?n de forma noraml y guardo el resultado
+				var subtotal = guardado;
+				
+				if (_Calculator._doControl)
+					_Calculator.control();
+					
+				if (!_Calculator._Error){
+				
+					total        = eval(guardado);           //-- Efectuo el calculo
+					total        = _Calculator.round(total); //-- Redondeo
+					//--
+					if (total <= 999999999999999.99){
+					
+						_Calculator._ansResult = total;
+						document.calculator.ans.value = _Calculator.applyNumericFormat(_Calculator._ansResult);
+						
+					}else{
+					
+						error                         = true;
+						total                         = "Error: El valor numérico se excedió del máximo permitido.";
+						document.calculator.ans.value = "Error";
+						_Calculator._ansResult		  = "0";
+						
+					}
+				}else{
+				
+					error                         = true;
+					total                         = "Error: No se puede dividir entre cero.";
+					document.calculator.ans.value = "Error";					
+					_Calculator._ansResult		  = "0";
+					
+				}
+				
+				if (_Calculator.CheckFirstExecution())
+				{
+					_Calculator.ParseXMLtoHistoryLog();
+					_Calculator._firstExecution = false;
+				}
+				
+				
+				if (!error) {
+				
+					_Calculator.saveAndShowHistory(subtotal, total);
+					
+					//-- hago scroll hasta el final del div.
+					var historyListContainer       = document.getElementById("historyListContainer");
+					historyListContainer.scrollTop = historyListContainer.scrollHeight;
+					//--------------------------------------	
+
+				}
+				
+				//--
+				_Calculator.sendLog(subtotal, total);
+				//--
+				
+				document.calculator.ans2.value = "";
+				_Calculator._formula   		   = "";				
+				_Calculator._operador  		   = false;
+				_Calculator._numeric   		   = false;
+				_Calculator._resultado 		   = true;  //26/06/2015 bloqueo para que puedan sobrescribir el resultado
+				
+			}
+			
+		}else{
+			//-- no hago nada
+		}
+		
+	},
+	
+	hideAndShowHistory: function(){
+	
+		var btnHistory = document.getElementById("buttonHistory");
+		if(!this._IsHistoryVisible)
+		{
+		
+			if (_Calculator.CheckFirstExecution())
+			{
+				_Calculator.ParseXMLtoHistoryLog();
+				_Calculator._firstExecution = false;
+				
+			}
+		
+			this._IsHistoryVisible = true;
+			btnHistory.setAttribute("value", "<<");
+			(document.getElementById("historyArea")).setAttribute("class", "showHistoryArea");
+			(document.getElementById("dxy")).setAttribute("class", "calculatorShowHistory");
+			
+			//-- hago scroll hasta el final del div.
+			var historyListContainer       = document.getElementById("historyListContainer");
+			historyListContainer.scrollTop = historyListContainer.scrollHeight;
+			//--------------------------------------	
+			
+		}else{
+		
+			this._IsHistoryVisible = false;
+			btnHistory.setAttribute("value", ">>");
+			(document.getElementById("historyArea")).setAttribute("class", "hideHistoryArea");
+			(document.getElementById("dxy")).setAttribute("class", "calculatorHideHistory");
+			
+		}
+	},
+	
+	deleteHistory: function(){ 
+/*		var historyList = document.getElementById("historyList"); 
+		
+        var historyElem = historyList.lastChild;  
+		
+        while (historyElem) {
+            historyList.removeChild(historyElem); 
+            historyElem = historyList.lastChild; 
+        }
+		
+		this._HistoryFormula = []; //-- Array of characters
+		this._HistoryResults = []; //-- Array of characters
+		this._TopeFormula    = 0;*/
+		
+	},
+	
+	selectHistoryResult: function(elemId){
+		var total                     = _Calculator._HistoryResults[elemId];		
+		document.calculator.ans.value = total;
+		_Calculator._ansResult        = total.replace(/,/g, "");
+	},
+	
+	saveAndShowHistory: function(subtotal, total){
+		
+		var historyFormula   = "";
+		var historyResults   = "";
+		var historyContainer = "";
+		
+		var ul          = document.getElementById("historyList");  
+		var li          = document.createElement("li");
+		var spanFormula = document.createElement("span");
+		var spanResult  = document.createElement("span");
+		var br          = document.createElement("br");
+
+		subtotal       = this.formatFormula(subtotal);
+		historyFormula = subtotal;		
+		total          = this.applyNumericFormat(total);
+		historyResults = total;
+		
+		var indice = _Calculator._TopeFormula + 1
+		_Calculator._HistoryFormula[_Calculator._TopeFormula] = subtotal;
+		_Calculator._HistoryResults[_Calculator._TopeFormula] = total;
+		_Calculator._TopeFormula      						  = indice;
+		
+		li.setAttribute("id", "historyElem_" + (_Calculator._TopeFormula).toString());
+		li.setAttribute("name", "historyElem_" + (_Calculator._TopeFormula).toString());
+		li.setAttribute("class", "historyElem");
+		
+		if (li.attachEvent)
+			li.attachEvent('onclick', function() { _Calculator.selectHistoryResult((indice-1)); });
+		else
+			li.addEventListener('onclick', function() { _Calculator.selectHistoryResult((indice-1)); }, false);
+		
+		//-- FORMULA:
+		spanFormula.setAttribute("class", "historyFormula");
+		spanFormula.appendChild(document.createTextNode(historyFormula + " ="));
+		
+		//-- RESULT:
+		spanResult.setAttribute("class", "historyResult");
+		spanResult.appendChild(document.createTextNode(historyResults));
+		
+		//-- APPEND SPANS TO HISTORY ITEM:
+		li.appendChild(spanFormula);
+		li.appendChild(spanResult);
+		
+		//-- ADD HISTORY ITEM TO HISTORY LIST:
+		ul.appendChild(li);	
+		
+	},
+
+	formatFormula: function(formula){
+		formula = formula.replace(/[/]/g, " / ");
+		formula = formula.replace(/[*]/g, " * ");
+		formula = formula.replace(/[+]/g, " + ");
+		formula = formula.replace(/[-]/g, " - ");
+		return formula;
+	},
+	
+	applyNumericFormat: function(importe){
+	
+		var importeEscrito = importe.toString();
+		var dotPos         = importeEscrito.search(/\./);
+		var decimales      = "";
+		var enteros        = "";
+		
+		if (dotPos > 0){ //-- Encontre un punto., la expresion tiene decimales
+			decimales  = importeEscrito.substr(dotPos, importeEscrito.lenght);
+			enteros    = importeEscrito.substr(0, dotPos);
+		}else{ //-- La expresión no tiene decimales
+			enteros    = importeEscrito;
+		}
+
+		enteros        = enteros.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1,');
+
+		return (enteros + decimales);
+	},
+	
+	deleteAllCalc: function(){
+		//mueve el cursor del input con el resultado al final del texto//		
+		document.calculator.ans.value  = "0";
+		document.calculator.ans2.value = "";
+		_Calculator._ansResult		   = "0";
+		_Calculator._formula           = "";
+		_Calculator._operador          = false;
+	},
+	
+	deleteCalc: function(){
+		//26/06/2015 bloqueo para que no puedan borrar de un caracter
+		if (!_Calculator._resultado)
+		{
+			if((_Calculator._ansResult).length > 1)
+			{
+				//borro de a un caracter
+				var tamano   = ((_Calculator._ansResult).length) - 1;
+				_Calculator._ansResult = (_Calculator._ansResult).substring(0,tamano);
+				
+				if (tamano > 3) //-- tengo que formatear (aunque para numeros con decimales puedo estar entrando aunque no lo necesite)
+					document.calculator.ans.value = _Calculator.applyNumericFormat(_Calculator._ansResult);
+				else
+					document.calculator.ans.value = _Calculator._ansResult;
+
+			}else{
+
+				document.calculator.ans.value = "0";
+				_Calculator._ansResult		  = "0";
+				
+			}
+		}
+	},
+	
+	porcentajeCalc: function(){
+	
+		//---
+		var subtotal                  = _Calculator._ansResult;
+		var total                     = _Calculator._ansResult = eval(_Calculator._ansResult) / 100;
+		document.calculator.ans.value = _Calculator.applyNumericFormat(_Calculator._ansResult);
+		var auxLog                    = "1% of "+ subtotal;
+		//---
+		
+		_Calculator._resultado         = false;
+		document.calculator.ans2.value = ""; 
+		_Calculator.sendLog(auxLog, total);
+		
+		//-- Cargo el calculo a la historia
+		_Calculator.saveAndShowHistory(auxLog, total);
+		//-- hago scroll hasta el final del div.
+		
+		if (_Calculator.CheckFirstExecution())
+		{
+			_Calculator.ParseXMLtoHistoryLog();
+			_Calculator._firstExecution = false;
+		}
+		
+		var historyListContainer       = document.getElementById("historyListContainer");
+		historyListContainer.scrollTop = historyListContainer.scrollHeight;
+		//--------------------------------------	
+		
+		
+	},
+	
+	operadorCalc: function(id,oper){
+		//  TENGO QUE TENER LA MISMA LOGICA QUE EN LOS OTROS.. SI YA EXISTE UN OPERADOR LO SOBRE-ESCRIBO,
+		//	SINO DEVUELVO RESULTADO Y GRABO FORMULA
+		if (oper != "."){
+			//--
+			var formula = _Calculator._formula;
+			//--
+			_Calculator._formula += _Calculator._ansResult;
+			//--
+			if (_Calculator._doControl)
+				_Calculator.control();
+			//--
+			if (formula != '' && document.calculator.ans.value != 'Error'){
+				var sobreEscribo   = false;
+				var largo 		   = formula.length;
+				var ultimocaracter = formula.substring(largo-1, largo);
+				//--
+				if (ultimocaracter != oper && !_Calculator._numeric){
+					sobreEscribo = true;
+				}
+				//--
+				if (!sobreEscribo){
+					_Calculator._formula 		  = formula + _Calculator._ansResult + oper; // 
+					document.calculator.ans.value = _Calculator.applyNumericFormat(eval(formula + _Calculator._ansResult));
+				}else{								
+					formula = formula.substring(0, largo - 1) + oper;
+					_Calculator._formula = formula;
+				}
+			}else{
+				_Calculator._formula += oper;
+			}
+
+			 //mueve el cursor del input con el resultado al final del texto//
+			_Calculator._numeric   = false;
+			_Calculator._operador  = true;
+			
+		}else{
+		
+			var termino  = _Calculator._ansResult;
+			var hayPunto = false;
+			
+			var i        = 0;
+			while(i <= termino.length){
+				var aux = termino.charAt(i);
+				if(aux == '.'){
+					hayPunto = true;
+				}
+				i++;
+			}
+			
+			if(!hayPunto && (_Calculator._ansResult).length <= 14){
+				document.calculator.ans.value += ".";
+				_Calculator._ansResult 		  += ".";
+				_Calculator._numeric   		   = false;				
+			}
+		}
+		if (oper == '/') _Calculator._doControl = true; //-- si es division tengo que hacer control por division entre cero.
+
+		_Calculator._resultado = false;//26/06/2015
+		_Calculator._operationField();
+	},
+	
+	numerosCalc: function(id,num){
+		//26/06/2015
+		if (_Calculator._Error)
+			_Calculator.inicializoCalc();
+		//--
+		var termino = 0;
+		termino     = (_Calculator._ansResult.toString()).length;
+		
+		/*
+		TENGO QUE CONTROLAR QUE NO SE PERMITA UTILIZAR MAS DE 16 CARACTERES PARA CADA TERMINO DE LA OPERACIÓN
+		*/
+		//Preguntar si es ie8
+		//numeros
+		if (_Calculator._ansResult <= 999999999999999.99){
+			if (termino <= 14 || _Calculator._operador) { //-- REALIZO EL CONTROL DE CARACTERES
+				//alert(auxAnterior);	
+				//26/06/2015 si el igual se presiono sobreescribo el resultado
+				var i 		    = 0;
+				var pos		    = 0;
+				var auxPos      = 0;
+				var auxAnterior = document.calculator.ans.value;
+				var termino		= 0;
+
+				//TOMO EL ULTIMO CARACTER PARA EVALUAR
+				var anterior = auxAnterior.substring(auxAnterior.length-1,auxAnterior.length);
+				//alert(anterior);
+				if (_Calculator._resultado || _Calculator._operador){
+					_Calculator._ansResult        = num;
+					document.calculator.ans.value = _Calculator.applyNumericFormat(_Calculator._ansResult);
+					_Calculator._resultado = false;
+					_Calculator._operador  = false;
+				}else{
+					if (anterior == '0') //-- la primera vez nada mas
+					{
+						if (auxAnterior == '0'){
+							_Calculator._ansResult		  = num;
+							document.calculator.ans.value = _Calculator._ansResult;
+						}else{
+							_Calculator._ansResult		  += num;
+							document.calculator.ans.value  = _Calculator.applyNumericFormat(_Calculator._ansResult);
+							
+						}
+					}else {
+						_Calculator._ansResult		  += num;
+						document.calculator.ans.value  = _Calculator.applyNumericFormat(_Calculator._ansResult);
+					}
+				}
+				//mueve el cursor del input con el resultado al final del texto//
+				//_Calculator.setSelectionRange(field, field.value.length, field.value.length);
+				_Calculator._operador = false;
+				_Calculator._numeric  = true;
+			}
+		}else{
+			//-- do nothing
+		}
+	},
+	
+	control: function(){
+		var formula = _Calculator._formula;
+		var indice  = 0;
+		indice = formula.lastIndexOf('/') + 1;
+		if (indice != 0){
+			var exp = formula.substring(indice,formula.length);
+			if (exp == 0){
+				_Calculator._formula = '';
+				document.calculator.ans.value = 'Error';
+				_Calculator._Error = true;
+			}
+		}
+		_Calculator._doControl = false;
+	},
+	 
+	inicializoCalc: function(){ 
+		_Calculator._formula          = '';
+		document.calculator.ans.value = '';
+		_Calculator._Error            = false;
+		_Calculator._doControl        = false;
+		_Calculator._HistoryFormula   = [];
+		_Calculator._HistoryResults   = [];
+		_Calculator._TopeFormula      = 0;
+	},
+	
+	round: function(resultado){
+		var punto 	      = String(resultado).indexOf('.') ;
+		if (punto > 0){
+			punto += 1; //-- Incremento una pos. para determinar la cantidad de decimales.
+			var cantDecimales = String(resultado).length - punto;
+			var auxResultado  = 0;
+			if (cantDecimales > 8){
+				var divisor  = 100000000;
+				auxResultado = resultado * divisor;
+				auxResultado = Math.round(auxResultado);
+				resultado    = auxResultado / divisor;
+			}				
+		}else{
+			//-- no hago nada.
+		}
+		return resultado;
+		
+	}//,
+	
+};
+
+//margin-top:14px;
+</script>
+<div class="calculadora" id="dxy">
+	<form name="calculator" id= "calculator" >
+		<div id="cal" >
+			<div id="inputFields">
+				<input type="text" id="operandos" name="ans2" value="" >
+				<input type="text" id="resultado" name="ans" value=""  >
+			</div>
+			<div id="buttonsArea">
+				<input type="button" class="boton grayButtons" value="C" onClick="_Calculator.deleteAllCalc()">
+				<input type="button" class="boton grayButtons" value="<" onClick="_Calculator.deleteCalc()">
+				<input type="button" class="boton grayButtons" value="%" onClick="_Calculator.porcentajeCalc()">
+				<input type="button" class="boton redButtons" value="/" onClick="_Calculator.operadorCalc('resultado','/')" >
+				
+				<br>
+				<input type="button" class="boton" value="7" onClick="_Calculator.numerosCalc('resultado','7')" >
+				<input type="button" class="boton" value="8" onClick="_Calculator.numerosCalc('resultado','8')">
+				<input type="button" class="boton" value="9" onClick="_Calculator.numerosCalc('resultado','9')">
+				<input type="button" class="boton redButtons" value="*" onClick="_Calculator.operadorCalc('resultado','*')"  >
+				<br>
+				
+				<input type="button" class="boton" value="4" onClick="_Calculator.numerosCalc('resultado','4')">
+				<input type="button" class="boton" value="5" onClick="_Calculator.numerosCalc('resultado','5')">
+				<input type="button" class="boton" value="6" onClick="_Calculator.numerosCalc('resultado','6')">
+				<input type="button" class="boton redButtons" value="-" onClick="_Calculator.operadorCalc('resultado','-')" >
+				
+				<br>
+				
+				<input type="button" class="boton" value="1" onClick="_Calculator.numerosCalc('resultado','1')">
+				<input type="button" class="boton" value="2" onClick="_Calculator.numerosCalc('resultado','2')">
+				<input type="button" class="boton" value="3" onClick="_Calculator.numerosCalc('resultado','3')">
+				<input type="button" class="boton redButtons" value="+" onClick ="_Calculator.operadorCalc('resultado','+')" >
+				
+				<br>
+				<input type="button" class="botonCero" value="0" onClick="_Calculator.numerosCalc('resultado','0')"  >
+				<input type="button" class="boton"     value="," onClick="_Calculator.operadorCalc('resultado','.')">
+				<input type="button" class="boton redButtons" value="=" onClick= "_Calculator.saveCalc()"> 
+			</div>
+			<input type ="button" id="buttonHistory" value=">>" onClick= "_Calculator.hideAndShowHistory()"/>
+		</div>
+		
+		<div id="historyArea">
+			<div id="historyListContainer">
+				<ul id="historyList">
+				</ul>
+			</div>
+			<!--<div id="historyButtonContainer">
+				<input type="button" id="historyDeleteButton" value=""  onClick="_Calculator.deleteHistory()" />
+			</div> -->
+		</div>		
+	</form>	
+</div><!-- Fin div cal -->		
+
+<!-- Co'digo de creacio'n del menu' -->
+<script id="menuCode" type="text/javascript"></script>
+
+<script>
+	var procManager, alertCall, alertType, alertMark, timer;
+	var messageBack = document.getElementById("messageBack");
+	var getStepUrl = opener.getGetStepUrl();
+	var getGetAlertUrl = opener.getGetUrl();
+	var getRmvAlertUrl = opener.getRmvUrl();
+	var getErrorMsgUrl = opener.getGetErrorMsgUrl();
+	var getDelSessionUrl = opener.getDelSessionUrl();
+	var maximumWS = opener.getMaximumWS();
+	var flashCodeBase = opener.getFlashCodeBase();
+	var numberSeps = opener.getNumSeps();
+	var wait = document.getElementById("wait");
+	var bottom, stop, actualHeight, height;
+	var unloadEventHandlers = null;
+	var instanceId = getCookie("FRInstanceId");
+	var instanceIdCheckAlreadyFailed = false;
+	var compatibilityProblemAlreadyNotified = false;
+	var compatibilityProblemExists = null;
+	var userName = opener.getUserName();
+	var systemDate = opener.getDate();
+
+
+	/**code**/
+	if(typeof UseStaticInitalPage !== 'undefined'){
+		if(UseStaticInitalPage == '1'){
+			maximumWS  = maximumWS + 1
+		} 
+    }
+
+	/****/
+		// var osmMap = ""; // variable para almacenar el objeto de mapa de OpenStreetMap
+		// alert("1")
+		// //initMap()
+		
+		// // Función para inicializar el mapa de OpenStreetMap
+		// function initMap() {
+		// 	alert("1.5")
+		// var osmMap = L.map('map_canvas').setView([51.505, -0.09], 13); // Crea un mapa y lo muestra en el elemento con el ID "map_canvas". Se establece la ubicación inicial y el nivel de zoom.
+		// 	alert('2')
+		// // Agrega una capa de mapa base de OpenStreetMap
+		// L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		// 	attribution: '© OpenStreetMap contributors' // Atribución de OpenStreetMap
+		// }).addTo(osmMap);
+
+		// // Llama a la función para renderizar marcadores en el mapa
+		// renderMarkers();
+		
+		// }
+
+		// // Función para renderizar marcadores en el mapa
+		// function renderMarkers() {
+		// var locations = [ // Ejemplo de arreglo de ubicaciones con latitud, longitud y título
+		// 	{lat: 51.5074, lon: -0.1278, title: 'Londres'},
+		// 	{lat: 40.7128, lon: -74.0060, title: 'Nueva York'},
+		// 	{lat: 34.0522, lon: -118.2437, title: 'Los Ángeles'}
+		// ];
+
+		// // Itera sobre las ubicaciones y crea marcadores en el mapa
+		// for (var i = 0; i < locations.length; i++) {
+		// 	var location = locations[i];
+		// 	var marker = L.marker([location.lat, location.lon]).addTo(osmMap); // Crea un marcador en la ubicación con latitud y longitud
+		// 	marker.bindPopup(location.title); // Agrega un título al marcador
+		// }
+		// alert('3')
+		// }
+
+		// // Llama a la función de inicialización del mapa cuando se carga la página
+		// window.onload = function() {
+		// initMap();
+		// };
+
+
+
+
+	var maxWaitCalls = 3;
+	if (opener.getMaxWait && opener.getMaxWait())
+	{
+		maxWaitCalls = Math.round(opener.getMaxWait() / 10);
+		if (maxWaitCalls < 3)
+		{
+			maxWaitCalls = 3;
+		}
+	}
+
+	// Esta variable almacena las cookies iniciales, por ahora no se utiliza
+	var originalCookies = opener.originalCookies;
+	
+	if ((typeof(opener.getInstanceId) != "undefined") && (opener.getInstanceId != null))
+		instanceId = opener.getInstanceId();
+
+	// Se inicializan los objetos "flash"
+	//AV initializeTopAndAppBars();
+	/* AV NUEVO*/
+/*	var topbar = document.getElementById("topbar");
+	var apptab = document.getElementById("tabContainer");
+	var apptabContainer = document.getElementById("apptabcontainer");
+	TabManager.Initialize(apptabContainer, ProcessTabBuilder);
+	procManager = new ProcessManager(procContainer, apptab, 'procChangeCallBack()', TabManager);*/
+	
+	/* FIN AV NUEVO*/
+
+	// Se construye la fa'brica de controles de cliente
+	var controlFactoryInstance = new ControlFactory(clientControlContainer);
+
+	resizeProcTabContainer();
+
+	//AV topbar.SetVariable("userName", opener.getUserName());
+	//AV topbar.SetVariable("systemDate", opener.getDate());
+	document.getElementById("user_name").innerText = userName;
+
+
+	document.getElementById("system_date").innerText = "Fecha: " + systemDate;
+
+	// Se deshabilita la seleccio'n de manera que no se pueda seleccionar toda la pantalla inintencionalmente arrastrando un 'popup'
+	document.onselectstart = new Function("return false");
+
+	// Se setea el manejador del teclado
+	attachOnKeyDown('null', 2);
+
+	// Se consigue el co'digo que define el menu'
+	menuCode.src = opener.getGetMenuCodeUrl();
+
+	document.body.onload = bodyOnload;
+
+	// Reporta un "popup" a remover con el pro'ximo pedido de alerta
+	function clearPopup(popupId)
+	{
+		if (toRmovePopupIds != "")
+			toRmovePopupIds += ";" + popupId;
+		else
+			toRmovePopupIds = popupId;
+	}
+
+	function winUnload()
+	{
+		if (unloadEventHandlers != null)
+		{
+			for (var i = 0; i < unloadEventHandlers.length; i++)
+			{
+				try
+				{
+					if (typeof(unloadEventHandlers[i]) == "function")
+						unloadEventHandlers[i]();
+					else
+						eval(unloadEventHandlers[i]);
+
+				}
+				catch (e) {}
+			}
+		}
+
+		// En caso que se haya abierto otra instancia se evita eliminar la autenticacio'n de forma de no cancelar la otra sesio'n
+		if (isSameInstanceId())
+		{
+			var req;
+
+			if (getDelSessionUrl != "")
+			{
+				if (window.XMLHttpRequest)
+				{
+					req = new XMLHttpRequest();
+				}
+				else
+				{
+					if (window.ActiveXObject)
+					{
+						// Internet Explorer
+						req = new ActiveXObject("Microsoft.XMLHTTP");
+					}
+				}
+			
+				// Se elimina la informacio'n de sesio'n
+				try
+				{
+					req.open("GET", getDelSessionUrl, false);
+				}
+				catch (e)
+				{
+					// Puede dar un acceso denegado si viene un puerto equivocado (sucede con un balanceador en algunos casos
+					// que no le quita el puerto a la respuesta y la URL base difiere de la que se esta' mandando aqui')
+					getDelSessionUrl = fixUrl(getDelSessionUrl);
+					req.open("GET", getDelSessionUrl, false);
+				}
+
+				req.send(null);
+			}
+
+			document.execCommand('ClearAuthenticationCache', false);
+		}
+	}
+</script>
+
+<!-- 'div' utilizado para cubrir el scroll de los paneles -->
+<div id="coverAll" class="coverAll" />
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+<script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/es6-shim@0.35.3/es6-shim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/es6-shim@0.35.3/es6-sham.min.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+
+<div id="map" style="height: 100%;"></div>
+<script>
+    var map = L.map('map').setView([-15.8422000, -70.0199000 ], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+    var marker = L.marker([-15.8422000, -70.0199000 ]).addTo(map);
+</script>

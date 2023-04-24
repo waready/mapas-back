@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <title>OpenStreetMap Search Example</title>
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+              integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+              crossorigin=""/>
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+                integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+                crossorigin=""></script>
+                <script src="https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/es6-shim@0.35.3/es6-shim.min.js"></script>
+                <script src="https://cdn.jsdelivr.net/npm/es6-shim@0.35.3/es6-sham.min.js"></script>
+                
+                
+                <script src="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.js"></script>
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.7.1/dist/leaflet.css" />
+                
+
+        <style>
+            #map {
+                height: 400px;
+                width: 100%;
+            }
+        </style>
+    </head>
+    <body>
+    
+    <input type="text" id="search-input" placeholder="Enter an address">
+    <button id="search-button">Search</button>
+    
+    <div id="map"></div>
+<script>
+
+// Initialize the map
+// var map = L.map('map').setView([51.505, -0.09], 13);
+
+// // Add the OpenStreetMap tiles to the map
+// L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+//     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+// }).addTo(map);
+
+var map = L.map('map').setView([-15.8422000, -70.0199000 ], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+var marker = L.marker([-15.8422000, -70.0199000 ]).addTo(map);
+
+// Create a search input and search button
+var searchInput = document.getElementById('search-input');
+var searchButton = document.getElementById('search-button');
+
+// When the search button is clicked, search for the address
+searchButton.addEventListener('click', function () {
+    // Get the search query from the input
+    var searchQuery = searchInput.value;
+    
+    // Send a request to the Nominatim API to search for the address
+    // fetch('https://nominatim.openstreetmap.org/search?q=' + searchQuery + '&format=json')
+    //     .then(function (response) {
+    //         return response.json();
+    //     })
+    //     .then(function (data) {
+    //         // If there are no results, show an error message
+    //         if (data.length === 0) {
+    //             alert('No results found');
+    //             return;
+    //         }
+            
+    //         // Get the first result from the data
+    //         var firstResult = data[0];
+    //         console.log(firstResult)
+            
+    //         // Set the view of the map to the coordinates of the first result
+    //         map.setView([firstResult.lat, firstResult.lon], 13);
+            
+    //         // Add a marker to the map at the coordinates of the first result
+    //         L.marker([firstResult.lat, firstResult.lon]).addTo(map);
+    //     });
+    var xhr = new XMLHttpRequest();
+  xhr.open(
+    "GET",
+    "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
+      encodeURIComponent(searchQuery),
+    true
+  );
+  xhr.onreadystatechange = function() {
+    if (xhr.readyState === XMLHttpRequest.DONE) {
+      if (xhr.status === 200) {
+        var result = JSON.parse(xhr.responseText)[0];
+        console.log(result.lat ," - ", result.lon)
+
+            //Set the view of the map to the coordinates of the first result
+        map.setView([result.lat, result.lon], 13);
+            // Add a marker to the map at the coordinates of the first result
+        L.marker([result.lat, result.lon]).addTo(map);
+      }
+    }
+  };
+  xhr.send();
+
+
+});
+
+</script>
+
+</html>
